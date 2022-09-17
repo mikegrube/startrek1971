@@ -116,3 +116,4 @@ computerStrings = [
     "bas = Starbase Calculator",
     "nav = Navigation Calculator",
     ]
+

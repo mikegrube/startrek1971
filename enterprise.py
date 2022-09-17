@@ -11,7 +11,7 @@ class Actor:
         self.damage = 0
 
     @abstractmethod
-    def act(self):
+    def act(self, command):
         pass
 
     def repair(self):
@@ -41,19 +41,25 @@ class Navigation(Actor):
         self.parent = parent
         self.name = "warp engines"
 
-    def act(self):
+    def act(self, command):
         galaxy = self.parent.galaxy
         max_warp_factor = 8.0
         if self.damage > 0:
             max_warp_factor = 0.2 + variability(8) / 10.0
             print_line("Warp engines damaged. Maximum warp factor: {0}".format(max_warp_factor), 0, 1)
 
-        dirct = input_double("Enter course (1.0--8.9): ")
+        if len(command) > 1:
+            dirct = float(command[1])
+        else:
+            dirct = input_double("Enter course (1.0--8.9): ")
         if not dirct or dirct < 1.0 or dirct > 9.0:
             print_line("Invalid course.", 0, 1)
             return
 
-        dist = input_double("Enter warp factor (0.1--{0}): ".format(max_warp_factor))
+        if len(command) > 2:
+            dist = float(command[2])
+        else:
+            dist = input_double("Enter warp factor (0.1--{0}): ".format(max_warp_factor))
         if not dist or dist < 0.1 or dist > max_warp_factor:
             print_line("Invalid warp factor.", 0, 1)
             return
@@ -137,7 +143,7 @@ class Navigation(Actor):
         else:
             self.parent.docked = False
 
-        self.parent.short_range_sensors.act()
+        self.parent.short_range_sensors.act(command)
 
         if self.parent.docked:
             print("Lowering shields as part of docking sequence...")
@@ -159,25 +165,32 @@ class Shields(Actor):
         self.parent = parent
         self.name = "shields"
 
-    def act(self):
-        print("--- Shield Controls ----------------")
-        print("Shields at {0}.".format(self.parent.shields.level))
-        print("add = Add energy to shields.")
-        print("sub = Subtract energy from shields.")
-        print()
-        command = input("Enter shield control command: ").strip().lower()
-        print()
-        if command == "add":
+    def act(self, command):
+        if len(command) > 1:
+            cmd = command[1]
+        else:
+            print("--- Shield Controls ----------------")
+            print("Shields at {0}.".format(self.parent.shields.level))
+            print("add = Add energy to shields.")
+            print("sub = Subtract energy from shields.")
+            print()
+            cmd = input("Enter shield control command: ").strip().lower()
+            print()
+        if cmd == "add":
             adding = True
             max_transfer = self.parent.energy
-        elif command == "sub":
+        elif cmd == "sub":
             adding = False
             max_transfer = self.level
         else:
             print_line("Invalid command.", 0, 1)
             return
-        transfer = input_double(
-            "Enter amount of energy (1--{0}): ".format(max_transfer))
+
+        if len(command) > 2:
+            transfer = float(command[2])
+        else:
+            transfer = input_double(
+                "Enter amount of energy (1--{0}): ".format(max_transfer))
         if not transfer or transfer < 1 or transfer > max_transfer:
             print_line("Invalid amount of energy.", 0, 1)
             return
@@ -198,7 +211,7 @@ class ShortRangeSensors(Actor):
         self.parent = parent
         self.name = "short range sensors"
 
-    def act(self):
+    def act(self, command):
         if self.damage > 0:
             print_line("Short range scanner is damaged. Repairs are underway.", 1)
             return
@@ -254,7 +267,7 @@ class LongRangeSensors(Actor):
         self.parent = parent
         self.name = "long range sensors"
 
-    def act(self):
+    def act(self, command):
         if self.damage > 0:
             print_line("Long range scanner is damaged. Repairs are underway.", 0, 1)
             return
@@ -268,24 +281,29 @@ class Computers(Actor):
         self.parent = parent
         self.name = "main computer"
 
-    def act(self):
+    def act(self, command):
         commands = {"rec": self.display_galactic_record, "sta": self.display_status,
                     "tor": self.photon_torpedo_calculator,
-                    "bas": self.starbase_calculator, "nav": self.navigation_calculator}
+                    "bas": self.starbase_calculator, "nav": self.navigation_calculator
+                    }
 
         if self.damage > 0:
             print_line("The main computer is damaged. Repairs are underway.", 0, 1)
             return
-        print_strings(strings.computerStrings)
-        command = input("Enter computer command: ").strip().lower()
-        cmd = commands.get(command)
+
+        if len(command) > 1:
+            cmd = commands.get(command[1])
+        else:
+            print_strings(strings.computerStrings)
+            command = input("Enter computer command: ").strip().lower()
+            cmd = commands.get(command)
         if cmd is not None:
-            cmd()
+            cmd(command)
         else:
             print_line("Invalid computer command.", 1, 1)
         self.parent.take_damage(4)
 
-    def display_galactic_record(self):
+    def display_galactic_record(self, command):
         status = self.parent.galaxy.galactic_record()
         print("Current quadrant: {0}-{1}.".format(self.parent.quadrant_x + 1, self.parent.quadrant_y + 1))
         print_line("-------------------------------------------------", 1, 0)
@@ -300,15 +318,22 @@ class Computers(Actor):
             print("-------------------------------------------------")
         print()
 
-    def navigation_calculator(self):
-        print_line("Enterprise located in quadrant [%s,%s]."
-                   % (self.parent.quadrant_x + 1, self.parent.quadrant_y + 1), 1, 1)
-        quad_x = input_double("Enter destination quadrant X (1--8): ")
+    def navigation_calculator(self, command):
+        if len(command) > 2:
+            quad_x = float(command[2])
+        else:
+            print_line("Enterprise located in quadrant [%s,%s]."
+                       % (self.parent.quadrant_x + 1, self.parent.quadrant_y + 1), 1, 1)
+            quad_x = input_double("Enter destination quadrant X (1--8): ")
         if quad_x is False or quad_x < 1 or quad_x > 8:
             print("Invalid X coordinate.")
             print()
             return
-        quad_y = input_double("Enter destination quadrant Y (1--8): ")
+
+        if len(command) > 3:
+            quad_y = float(command[3])
+        else:
+            quad_y = input_double("Enter destination quadrant Y (1--8): ")
         if quad_y is False or quad_y < 1 or quad_y > 8:
             print("Invalid Y coordinate.")
             print()
@@ -323,7 +348,7 @@ class Computers(Actor):
         print("Direction: {0:1.2f}".format(direction(self.parent.quadrant_x, self.parent.quadrant_y, qx, qy)))
         print_line("Distance:  {0:2.2f}".format(distance(self.parent.quadrant_x, self.parent.quadrant_y, qx, qy)), 0, 1)
 
-    def photon_torpedo_calculator(self):
+    def photon_torpedo_calculator(self, command):
         print()
         galaxy = self.parent.galaxy
         if not galaxy.current_quadrant_has_klingons():
@@ -337,7 +362,7 @@ class Computers(Actor):
                 direction(self.parent.sector_x, self.parent.sector_y, ship.sector_x, ship.sector_y)))
         print()
 
-    def starbase_calculator(self):
+    def starbase_calculator(self, command):
         print()
         if self.parent.galaxy.quadrant_has_starbase(self.parent.quadrant_x, self.parent.quadrant_y):
             sx, sy = self.parent.galaxy.current_quadrant.starbase_loc()
@@ -350,7 +375,7 @@ class Computers(Actor):
             print("There are no starbases in this quadrant.")
         print()
 
-    def display_status(self):
+    def display_status(self, command):
         print()
         print("               Time Remaining: {0}".format(self.parent.time_remaining))
         print("      Klingon Ships Remaining: {0}".format(self.parent.galaxy.galaxy_klingon_count()))
@@ -373,7 +398,7 @@ class TorpedoControl(Actor):
         self.parent = parent
         self.name = "torpedo control"
 
-    def act(self):
+    def act(self, command):
         if self.damage > 0:
             print_line("Photon torpedo control is damaged. Repairs are underway.", 0, 1)
             return
@@ -383,7 +408,11 @@ class TorpedoControl(Actor):
         if not self.parent.galaxy.current_quadrant_has_klingons():
             print_line("There are no Klingon ships in this quadrant.", 0, 1)
             return
-        dirct = input_double("Enter firing direction (1.0--9.0): ")
+
+        if len(command) > 1:
+            dirct = float(command[1])
+        else:
+            dirct = input_double("Enter firing direction (1.0--9.0): ")
         if not dirct or dirct < 1.0 or dirct > 9.0:
             print_line("Invalid direction.", 0, 1)
             return
@@ -440,7 +469,7 @@ class PhaserControl(Actor):
         self.parent = parent
         self.name = "phaser control"
 
-    def act(self):
+    def act(self, command):
         if self.damage > 0:
             print_line("Phasers are damaged. Repairs are underway.", 0, 1)
             return
@@ -449,7 +478,11 @@ class PhaserControl(Actor):
             print_line("There are no Klingon ships in this quadrant.", 0, 1)
             return
         print("Phasers locked on target.")
-        phaser_energy = input_double("Enter phaser energy (1--{0}): ".format(self.parent.energy))
+
+        if len(command) > 1:
+            phaser_energy = float(command[1])
+        else:
+            phaser_energy = input_double("Enter phaser energy (1--{0}): ".format(self.parent.energy))
         if not phaser_energy or phaser_energy < 1 or phaser_energy > self.parent.energy:
             print_line("Invalid energy level.", 0, 1)
             return
@@ -523,21 +556,30 @@ class Enterprise:
         self.set_location()
         self.set_status()
 
+    def act(self):
+        self.command_prompt()
+        self.display_status()
+
     def command_prompt(self):
 
         commands = {"nav": self.navigation, "srs": self.short_range_sensors, "lrs": self.long_range_sensors,
                     "pha": self.phasers, "tor": self.torpedoes, "she": self.shields,
                     "com": self.computers, "quit": exit, "exit": exit}
 
-        command = input("Enter command: ").strip().lower()
-        print()
-        cmd = commands.get(command)
+        command = self.get_command()
+        cmd = commands.get(command[0])
         if cmd == exit:
             exit()
         if cmd is not None:
-            cmd.act()
+            cmd.act(command)
         else:
             print_strings(strings.commandStrings)
+
+    def get_command(self):
+        command = input("Enter command: ").strip().lower()
+        print()
+        parts = command.split(",")
+        return parts
 
     def repair_damage(self):
         if self.navigation.repair():

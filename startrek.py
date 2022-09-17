@@ -15,16 +15,15 @@ def run():
         print_strings(strings.commandStrings)
         while enterprise.energy > 0 and not enterprise.destroyed and galaxy.galaxy_klingon_count() > 0 \
                 and enterprise.time_remaining > 0:
-            enterprise.command_prompt()
-            enterprise.display_status()
+            enterprise.act()
         restart()
 
 
 def restart():
     if enterprise.energy <= 0:
-        print("***** Enterprise has been recovered for a new mission. *****")
-    elif enterprise.destroyed:
         print("***** Enterprise has been salvaged for a new mission. *****")
+    elif enterprise.destroyed:
+        print("***** A new Enterprise has been commissioned for a new mission. *****")
     elif galaxy.galaxy_klingon_count() <= 0:
         print("***** Enterprise has been refitted for a new mission. *****")
     elif enterprise.time_remaining <= 0:
